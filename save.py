@@ -7,6 +7,7 @@ import pandas as pd
 from io import StringIO
 import docx
 import os
+import matplotlib.pyplot as plt
 
 # API key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -14,7 +15,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # Cấu hình giao diện Streamlit
 st.set_page_config(
     page_title="LHP AI Chatbot",
-    page_icon="new_icon.png",  # File icon tùy chỉnh
+    page_icon="new_icon.png",
     layout="wide"
 )
 
@@ -110,3 +111,23 @@ if st.session_state["response"]:
 if excel_data is not None:
     st.subheader("Excel Data Preview:")
     st.dataframe(excel_data)  # Hiển thị bảng dữ liệu từ file Excel
+
+    # Lựa chọn cột để vẽ biểu đồ
+    columns = excel_data.columns.tolist()
+    x_axis = st.selectbox("Select X-axis", columns)
+    y_axis = st.selectbox("Select Y-axis", columns)
+
+    # Vẽ biểu đồ nếu người dùng đã chọn cột
+    if st.button("Plot Chart"):
+        if x_axis and y_axis:
+            plt.figure(figsize=(10, 6))
+            plt.plot(excel_data[x_axis], excel_data[y_axis], marker="o", linestyle="-")
+            plt.title("Excel Data Chart")
+            plt.xlabel(x_axis)
+            plt.ylabel(y_axis)
+            plt.grid(True)
+            
+            # Hiển thị biểu đồ trong Streamlit
+            st.pyplot(plt)
+        else:
+            st.warning("Please select both X-axis and Y-axis columns!")
