@@ -7,7 +7,6 @@ import pandas as pd
 from io import StringIO
 import docx
 import os
-import matplotlib.pyplot as plt
 
 # API key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -43,23 +42,9 @@ def read_docx(file):
     return text
 
 def read_excel(file):
-    """Đọc nội dung từ file Excel và trả về DataFrame."""
-    return pd.read_excel(file)
-
-def plot_chart(data, chart_type, x_column, y_column):
-    """Hàm vẽ biểu đồ."""
-    plt.figure(figsize=(10, 6))
-    if chart_type == "Bar Chart":
-        plt.bar(data[x_column], data[y_column])
-    elif chart_type == "Line Chart":
-        plt.plot(data[x_column], data[y_column], marker="o")
-    elif chart_type == "Scatter Plot":
-        plt.scatter(data[x_column], data[y_column])
-    
-    plt.xlabel(x_column)
-    plt.ylabel(y_column)
-    plt.title(f"{chart_type}: {y_column} vs {x_column}")
-    st.pyplot(plt)
+    """Đọc nội dung từ file Excel."""
+    df = pd.read_excel(file)
+    return df  # Trả về DataFrame thay vì chuỗi văn bản
 
 # Tạo mô hình nhúng
 embeddings_model = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -78,9 +63,9 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True
 )
 
-# Đọc nội dung từ file và lưu trữ
-excel_tables = []
+# Đọc và kết hợp nội dung từ các file đã tải lên (nếu có)
 file_contents = []
+excel_data = None  # Dữ liệu từ Excel sẽ được lưu tại đây
 if uploaded_files:
     for uploaded_file in uploaded_files:
         if uploaded_file.name.endswith(".pdf"):
@@ -90,30 +75,11 @@ if uploaded_files:
         elif uploaded_file.name.endswith(".docx"):
             file_contents.append(read_docx(uploaded_file))
         elif uploaded_file.name.endswith((".xlsx", ".xls")):
-            df = read_excel(uploaded_file)  # Lưu DataFrame
-            excel_tables.append((uploaded_file.name, df))
+            excel_data = read_excel(uploaded_file)  # Lưu dữ liệu Excel vào biến này
 
-# Xử lý file Excel nếu có
-if excel_tables:
-    st.subheader("Excel Processing:")
-    selected_file = st.selectbox("Select an Excel file to process:", [name for name, _ in excel_tables])
-    
-    if selected_file:
-        selected_df = next(df for name, df in excel_tables if name == selected_file)
-
-        # Lựa chọn cột và loại biểu đồ
-        columns = selected_df.columns.tolist()
-        x_column = st.selectbox("Select X-axis:", columns, key=f"x_{selected_file}")
-        y_column = st.selectbox("Select Y-axis:", columns, key=f"y_{selected_file}")
-        chart_type = st.selectbox(
-            "Select Chart Type:", 
-            ["Bar Chart", "Line Chart", "Scatter Plot"], 
-            key=f"chart_{selected_file}"
-        )
-
-        # Vẽ biểu đồ khi nhấn nút
-        if st.button("Generate Chart"):
-            plot_chart(selected_df, chart_type, x_column, y_column)
+# Hiển thị thông báo khi xử lý file xong
+if file_contents or excel_data is not None:
+    st.success("Files uploaded and processed successfully!")
 
 # Kết hợp nội dung file vào câu hỏi nếu có
 if st.button("Submit"):
@@ -139,3 +105,8 @@ if st.button("Submit"):
 if st.session_state["response"]:
     st.subheader("Answer:")
     st.write(st.session_state["response"])
+
+# Hiển thị bảng Excel nếu có
+if excel_data is not None:
+    st.subheader("Excel Data Preview:")
+    st.dataframe(excel_data)  # Hiển thị bảng dữ liệu từ file Excel
